@@ -555,6 +555,7 @@ def main(args=None):
 
     app.dispatcher = Dispatcher()
     app.multivisor = Multivisor(options)
+    app.debug = bool(int(os.environ.get("DEBUG", 0)))
 
     if app.multivisor.use_authentication:
         secret_key = os.environ.get("MULTIVISOR_SECRET_KEY")
