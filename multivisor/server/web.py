@@ -5,6 +5,8 @@ from json import load
 from blinker import signal
 from dotenv import load_dotenv
 from flask import Flask, json, jsonify, make_response, render_template, request, Response, session
+from flask_basicauth import BasicAuth
+
 from gevent import queue, sleep
 from gevent.monkey import patch_all
 from gevent.pywsgi import WSGIServer
@@ -64,6 +66,11 @@ log = logging.getLogger("multivisor")
 
 app = Flask(__name__)
 app.jinja_env.line_statement_prefix = '#'
+
+app.config['BASIC_AUTH_USERNAME'] = os.environ.get("MULTIVISOR_USER")
+app.config['BASIC_AUTH_PASSWORD'] = os.environ.get("MULTIVISOR_PASSWORD")
+
+basic_auth = BasicAuth(app)
 
 
 @app.route("/api/admin/reload")
@@ -254,6 +261,7 @@ def common_context():
 
 
 @app.get("/ui/<view>")
+@basic_auth.required
 def view(view):
     htmx = request.headers.get("HX-Request") == "true"
     template = "view.html"
@@ -454,6 +462,7 @@ def ui_process_log_tail(stream, uid):
 
 
 @app.route("/")
+@basic_auth.required
 def root():
     return render_template("index.html", view="groups")
 
@@ -555,6 +564,7 @@ def main(args=None):
                 "when authentication is enabled"
             )
         app.secret_key = secret_key
+        print("Using secret key: ", secret_key)
 
     application = DebuggedApplication(app, evalex=True) if app.debug else app
     http_server = WSGIServer(bind, application=application)
