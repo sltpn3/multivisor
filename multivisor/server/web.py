@@ -1,16 +1,22 @@
-from .util import is_login_valid, login_required, SSEEvent, SSEResponse
-from multivisor.multivisor import Multivisor, OS_SIGNAL_MAP
-from multivisor.util import delta_human_time, human_time, sanitize_url
-from multivisor.signals import SIGNALS
-from werkzeug.debug import DebuggedApplication
-from flask import Flask, render_template, Response, request, json, jsonify, session, make_response
-from gevent.pywsgi import WSGIServer
-from gevent import queue, sleep
-from blinker import signal
-import os
 import logging
+import os
+from json import load
+
+from blinker import signal
+from dotenv import load_dotenv
+from flask import Flask, json, jsonify, make_response, render_template, request, Response, session
+from gevent import queue, sleep
 from gevent.monkey import patch_all
+from gevent.pywsgi import WSGIServer
+from werkzeug.debug import DebuggedApplication
+
+from multivisor.multivisor import Multivisor, OS_SIGNAL_MAP
+from multivisor.signals import SIGNALS
+from multivisor.util import delta_human_time, human_time, sanitize_url
+from .util import is_login_valid, login_required, SSEEvent, SSEResponse
+
 patch_all(thread=False)
+load_dotenv()
 
 
 STATES_TRANSITIONS = {
