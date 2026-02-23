@@ -1,19 +1,16 @@
+from .util import is_login_valid, login_required, SSEEvent, SSEResponse
+from multivisor.multivisor import Multivisor, OS_SIGNAL_MAP
+from multivisor.util import delta_human_time, human_time, sanitize_url
+from multivisor.signals import SIGNALS
+from werkzeug.debug import DebuggedApplication
+from flask import Flask, render_template, Response, request, json, jsonify, session, make_response
+from gevent.pywsgi import WSGIServer
+from gevent import queue, sleep
+from blinker import signal
+import os
+import logging
 from gevent.monkey import patch_all
 patch_all(thread=False)
-
-import logging
-import os
-
-from blinker import signal
-from gevent import queue, sleep
-from gevent.pywsgi import WSGIServer
-from flask import Flask, render_template, Response, request, json, jsonify, session, make_response
-from werkzeug.debug import DebuggedApplication
-
-from multivisor.signals import SIGNALS
-from multivisor.util import delta_human_time, human_time, sanitize_url
-from multivisor.multivisor import Multivisor, OS_SIGNAL_MAP
-from .util import is_login_valid, login_required, SSEEvent, SSEResponse
 
 
 STATES_TRANSITIONS = {
@@ -206,7 +203,8 @@ def login():
         session["username"] = username
         return json.dumps({})
     else:
-        response_data = {"errors": {"password": "Invalid username or password"}}
+        response_data = {"errors": {
+            "password": "Invalid username or password"}}
         return json.dumps(response_data), 400
 
 
@@ -307,6 +305,7 @@ LEVEL_STYLE = {
     "ERROR": "danger"
 }
 
+
 @app.get("/ui/stream")
 def ui_stream():
     def event_stream():
@@ -324,7 +323,7 @@ def ui_stream():
                 payload = NOTIFICATION.format(**data).replace("\n", "")
                 yield Event("notification", payload)
         app.dispatcher.remove_listener(client)
-    resp =  SSEResponse(event_stream())
+    resp = SSEResponse(event_stream())
     return resp
 
 
@@ -334,7 +333,7 @@ def ui_process_info(uid):
     process.refresh()
     start = human_time(process["start"])
     stop = human_time(process["stop"])
-    return render_template("process.html", live=True, start=start, stop=stop, process=process)
+    return render_template("process.html", live=False, start=start, stop=stop, process=process)
 
 
 @app.post("/ui/process/<uid>/start")
@@ -446,7 +445,7 @@ def ui_process_log_tail(stream, uid):
             i += 1
 
     return SSEResponse(event_stream())
-    
+
 
 @app.route("/")
 def root():
@@ -491,7 +490,8 @@ def set_secret_key():
 
 @app.errorhandler(401)
 def custom_401(error):
-    response_data = {"message": "Authenthication is required to access this endpoint"}
+    response_data = {
+        "message": "Authenthication is required to access this endpoint"}
     return Response(
         json.dumps(response_data), 401, {"content-type": "application/json"}
     )
@@ -509,7 +509,7 @@ def get_parser(args):
         "--config",
         help="configuration file",
         dest="config_file",
-        default="/etc/multivisor.conf",
+        default="./multivisor.conf",
     )
     parser.add_argument(
         "--log-level",
