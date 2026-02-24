@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from collections import OrderedDict
 import copy
 import hashlib
 import logging
@@ -277,7 +278,8 @@ class Supervisor(dict):
 
 class Process(dict):
 
-    Null = {"running": False, "pid": None, "state": None, "statename": "UNKNOWN"}
+    Null = {"running": False, "pid": None,
+            "state": None, "statename": "UNKNOWN"}
 
     def __init__(self, supervisor, *args, **kwargs):
         super(Process, self).__init__(self.Null)
@@ -405,7 +407,7 @@ def load_config(config_file):
     for section in parser.sections():
         if not section.startswith("supervisor:"):
             continue
-        name = section[len("supervisor:") :]
+        name = section[len("supervisor:"):]
         section_items = dict(parser.items(section))
         url = section_items.get("url", "")
         supervisors[name] = Supervisor(name, url)
@@ -520,11 +522,11 @@ class Multivisor(object):
         groups = {}
         for process in self.filter_processes(pattern):
             gname = process["group"]
-            group = groups.get(gname)   
+            group = groups.get(gname)
             if group is None:
                 groups[gname] = group = {"name": gname, "processes": []}
             group["processes"].append(process)
-        return groups
+        return OrderedDict(sorted(groups.items()))
 
     def filter_supervisors(self, pattern=None):
         supervisors = {}
@@ -532,10 +534,11 @@ class Multivisor(object):
             sname = process["supervisor"]
             supervisor = supervisors.get(sname)
             if supervisor is None:
-                supervisors[sname] = supervisor = {"name": sname, "processes": {}}
+                supervisors[sname] = supervisor = {
+                    "name": sname, "processes": {}}
             puid = process['uid']
             supervisor["processes"][puid] = process
-        return supervisors
+        return OrderedDict(sorted(supervisors.items()))
 
     def gen_processes(self):
         return (proc for svisor in self.supervisors.values() for proc in svisor["processes"].values())
@@ -544,7 +547,8 @@ class Multivisor(object):
         return (puid for svisor in self.supervisors.values() for puid in svisor["processes"])
 
     def refresh(self):
-        tasks = [spawn(supervisor.refresh) for supervisor in self.supervisors.values()]
+        tasks = [spawn(supervisor.refresh)
+                 for supervisor in self.supervisors.values()]
         joinall(tasks)
 
     def get_supervisor(self, name):
@@ -565,7 +569,8 @@ class Multivisor(object):
 
     def _do_processes(self, operation, *patterns):
         procs = self.processes_names
-        puids = {procs[name]['uid'] for name in filter_patterns(procs, patterns)}
+        puids = {procs[name]['uid']
+                 for name in filter_patterns(procs, patterns)}
         puids.update(self.get_processes_uids(patterns))
         procs = self.processes
         tasks = [spawn(operation, procs[puid]) for puid in puids]
